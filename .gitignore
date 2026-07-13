@@ -1,0 +1,15 @@
+cat > .gitignore << 'EOF'
+.venv/
+__pycache__/
+*.pyc
+
+# Honeypot's own host key — never publish a private key
+honeypot_host_key
+honeypot_host_key.pub
+
+# Collected data: contains full source IPs.
+# Personal data under UK GDPR. Never commit. (SPEC §3)
+data/
+*.jsonl
+*.db
+EOF
