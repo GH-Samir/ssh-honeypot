@@ -41,7 +41,7 @@ class HoneypotServer(asyncssh.SSHServer):
 
 async def main():
     await asyncssh.listen(
-        host="", port=2222,          # port 22 comes later
+        host="", port=22,
         server_factory=HoneypotServer,
         server_host_keys=["honeypot_host_key"],
     )
