@@ -1,7 +1,10 @@
 import asyncio, asyncssh, json, uuid
 from datetime import datetime, timezone
+import shutil
 
 EVENTS_PATH = "events.jsonl"
+
+MIN_FREE_BYTES = 500 * 1024 * 1024  # 500 MB safety margin
 
 class HoneypotServer(asyncssh.SSHServer):
     def connection_made(self, conn):
@@ -34,9 +37,12 @@ class HoneypotServer(asyncssh.SSHServer):
             "session_id": self.session_id,
             "attempt_no": self.attempt_no,
         }
-        line = json.dumps(event, ensure_ascii=False) + "\n"
-        with open(EVENTS_PATH, "a", encoding="utf-8", errors="replace") as f:
-            f.write(line)
+        if shutil.disk_usage(".").free > MIN_FREE_BYTES:
+            line = json.dumps(event, ensure_ascii=False) + "\n"
+            with open(EVENTS_PATH, "a", encoding="utf-8", errors="replace") as f:
+                f.write(line)
+        else:
+            print(f"WARNING: low disk space, dropped event {event['event_id']}")
         return False
 
 async def main():
