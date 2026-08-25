@@ -5,7 +5,7 @@
   "description": "Static dashboard over SSH honeypot credential telemetry",
   "type": "module",
   "scripts": {
-    "test": "node --test test/",
+    "test": "node --test \"test/**/*.test.js\"",
     "build": "node analysis/build.mjs",
     "geo": "node analysis/geo.mjs",
     "serve": "python3 -m http.server 8000 --directory dashboard"
