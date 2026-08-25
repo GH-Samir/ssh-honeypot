@@ -1,7 +1,7 @@
-cat > .gitignore << 'EOF'
 .venv/
 __pycache__/
 *.pyc
+node_modules/
 
 # Honeypot's own host key — never publish a private key
 honeypot_host_key
@@ -9,7 +9,19 @@ honeypot_host_key.pub
 
 # Collected data: contains full source IPs.
 # Personal data under UK GDPR. Never commit. (SPEC §3)
-data/
+# Scoped to the repo root so it does not swallow dashboard/data/, which holds
+# only /24-truncated aggregates that are safe to publish.
+/data/
 *.jsonl
 *.db
-EOF
+
+# Geo enrichment is keyed by full IP, so the cache is personal data too.
+# Derived country/ASN counts in dashboard/data/ are aggregate and do ship.
+analysis/cache/
+
+# Local-only build with full IPs (analysis/build.mjs --full-ip)
+dashboard/data/*.full.json
+
+# The design mockup this dashboard was built from — a 330KB self-extracting
+# bundle, not source. Kept locally for reference.
+SSH Honeypot Dashboard.html
