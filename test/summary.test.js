@@ -84,7 +84,11 @@ test('buildSummary builds one KPI tile per headline number', () => {
   const labels = s.kpis.map((k) => k.label);
   assert.deepEqual(labels, ['Attempts', 'Source blocks', 'Sessions', 'Usernames', 'Passwords', 'Countries', 'Window']);
   assert.equal(s.kpis[0].value, '6');
-  assert.equal(s.kpis[3].note, '"root" leads at 66.7%');
+  // The quoted credential is a separate field, not baked into the prose, so the
+  // renderer can style it and the build's privacy guard can skip it.
+  assert.equal(s.kpis[3].term, 'root');
+  assert.equal(s.kpis[3].note, 'leads at 66.7%');
+  assert.equal(s.kpis[0].term, null);
 });
 
 test('buildSummary drops the countries tile when there is no geo data', () => {

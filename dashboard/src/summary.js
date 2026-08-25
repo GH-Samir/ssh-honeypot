@@ -116,37 +116,41 @@ export function buildSummary(rows, options = {}) {
   );
   const seenOnce = pws.filter(([, n]) => n === 1).length;
 
+  // A KPI note may need to quote a username or password. That text is
+  // attacker-controlled, so it lives in its own `term` field rather than being
+  // baked into the prose: the renderer can style it, and the build's privacy
+  // guard can tell our words apart from theirs.
+  const kpi = (label, value, note, term = null) => ({ label, value, note, term });
+
   const kpis = [
-    { label: 'Attempts', value: formatCount(total), note: 'authentication events logged' },
-    {
-      label: anonymised ? 'Source blocks' : 'Source IPs',
-      value: formatCount(ips.length),
-      note: anonymised ? 'distinct /24 networks' : 'distinct addresses',
-    },
-    {
-      label: 'Sessions',
-      value: formatCount(sess.total),
-      note: `${formatCount(sess.multiCount)} with repeat guesses`,
-    },
-    {
-      label: 'Usernames',
-      value: formatCount(users.length),
-      note: users.length ? `"${users[0][0]}" leads at ${share(users[0][1], total)}` : '—',
-    },
-    {
-      label: 'Passwords',
-      value: formatCount(pws.length),
-      note: pws.length ? `"${pws[0][0]}" tried ${formatCount(pws[0][1])}×` : '—',
-    },
+    kpi('Attempts', formatCount(total), 'authentication events logged'),
+    kpi(
+      anonymised ? 'Source blocks' : 'Source IPs',
+      formatCount(ips.length),
+      anonymised ? 'distinct /24 networks' : 'distinct addresses',
+    ),
+    kpi('Sessions', formatCount(sess.total), `${formatCount(sess.multiCount)} with repeat guesses`),
+    kpi(
+      'Usernames',
+      formatCount(users.length),
+      users.length ? `leads at ${share(users[0][1], total)}` : '—',
+      users.length ? users[0][0] : null,
+    ),
+    kpi(
+      'Passwords',
+      formatCount(pws.length),
+      pws.length ? `tried ${formatCount(pws[0][1])}×` : '—',
+      pws.length ? pws[0][0] : null,
+    ),
   ];
   if (hasGeo) {
-    kpis.push({ label: 'Countries', value: formatCount(countries.length), note: 'distinct origins' });
+    kpis.push(kpi('Countries', formatCount(countries.length), 'distinct origins'));
   }
-  kpis.push({
-    label: 'Window',
-    value: total ? durationLabel(span) : '—',
-    note: total ? `from ${stamp(t0, timeline.multiDay)} UTC` : 'no events',
-  });
+  kpis.push(kpi(
+    'Window',
+    total ? durationLabel(span) : '—',
+    total ? `from ${stamp(t0, timeline.multiDay)} UTC` : 'no events',
+  ));
 
   // Newest first: the aggregate panels carry the totals, so the log is for
   // seeing what is happening now. The mockup showed the oldest 150, which on a
