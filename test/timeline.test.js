@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { chooseBucket, buildTimeline, buildDays, buildHours } from '../dashboard/src/timeline.js';
+import { chooseBucket, buildTimeline, buildDays, buildHours, buildWeekdays } from '../dashboard/src/timeline.js';
 
 const HOUR = 3600000, DAY = 86400000;
 
@@ -112,10 +112,33 @@ test('buildHours labels every third hour so the axis stays legible', () => {
   assert.equal(hours[10].title, '10:00–10:59 UTC — 4 attempts');
 });
 
+test('buildWeekdays folds every week onto Mon–Sun', () => {
+  // The fixture: Jan 1 2026 is a Thursday (4 events), Jan 3 a Saturday (2).
+  const { rows, busiest, peak } = buildWeekdays(TIMES);
+
+  assert.equal(rows.length, 7);
+  // Monday-first: the interesting contrast is weekday vs weekend, so the
+  // weekend sits together at the end instead of being split across both ends.
+  assert.deepEqual(rows.map((r) => r.dow), ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+  assert.deepEqual(rows.map((r) => r.count), [0, 0, 0, 4, 0, 2, 0]);
+  assert.equal(peak, 4);
+  assert.equal(busiest, 'Thu');
+  assert.equal(rows[3].pct, '100.00%');
+  assert.equal(rows[5].pct, '50.00%');
+});
+
+test('buildWeekdays labels each row for the bar list', () => {
+  const { rows } = buildWeekdays(TIMES);
+  assert.equal(rows[3].key, 'Thu');
+  assert.equal(rows[3].label, '4');
+});
+
 test('the time builders accept an empty capture', () => {
   // Reachable via drag-and-drop of a log whose lines were all malformed.
   assert.equal(buildDays([]).days.length, 0);
   assert.equal(buildDays([]).spansDays, false);
   assert.equal(buildHours([]).hours.length, 24);
   assert.equal(buildHours([]).busiestHour, 0);
+  assert.equal(buildWeekdays([]).rows.length, 7);
+  assert.equal(buildWeekdays([]).rows.every((r) => r.count === 0), true);
 });

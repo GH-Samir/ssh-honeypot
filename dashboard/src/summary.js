@@ -5,7 +5,7 @@
 // browser's drag-and-drop path share it and agree.
 
 import { EMPTY, tally, topBars } from './parse.js';
-import { buildTimeline, buildDays, buildHours } from './timeline.js';
+import { buildTimeline, buildDays, buildHours, buildWeekdays } from './timeline.js';
 import { buildSessions, buildStrips, buildPairs } from './sessions.js';
 import { durationLabel, formatCount, share, stamp } from './format.js';
 
@@ -64,6 +64,28 @@ function quietNote(n) {
   return `${formatCount(n)} days saw no traffic at all.`;
 }
 
+/**
+ * Distinct source blocks per country, most first.
+ *
+ * Counted separately from attempts because the two answer different questions,
+ * and where they disagree is the interesting part: many hosts means a
+ * distributed botnet, while huge volume from one host means somebody rented a
+ * VPS for an afternoon. A block is counted once per country no matter how often
+ * it knocks.
+ */
+function countDistinctSources(rows) {
+  const blocks = new Map();
+  for (const row of rows) {
+    if (!row.country) continue;
+    let set = blocks.get(row.country);
+    if (!set) { set = new Set(); blocks.set(row.country, set); }
+    set.add(row.src_ip);
+  }
+  return [...blocks.entries()]
+    .map(([country, set]) => [country, set.size])
+    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
+}
+
 /** Min/max by loop: Math.min(...times) overflows the stack at 121k arguments. */
 function bounds(times) {
   if (!times.length) return { t0: 0, t1: 0 };
@@ -97,6 +119,7 @@ export function buildSummary(rows, options = {}) {
   const timeline = buildTimeline(times, t0, span);
   const days = buildDays(times);
   const hours = buildHours(times);
+  const weekdays = buildWeekdays(times);
   const sess = buildSessions(rows);
   const strips = buildStrips(rows, {
     t0, span, limit: opts.stripLimit, columns: opts.stripColumns, perIp: sess.perIp,
@@ -106,7 +129,7 @@ export function buildSummary(rows, options = {}) {
   // Geo is optional: a log dropped onto the page has never been enriched.
   const hasGeo = rows.some((r) => r.country);
   const countries = hasGeo ? tally(rows, (r) => r.country) : [];
-  const networks = hasGeo ? tally(rows, (r) => r.asOrg) : [];
+  const sourcesByCountry = hasGeo ? countDistinctSources(rows) : [];
 
   // In the full-IP local build the addresses are not blocks, so say so.
   const anonymised = ips.length > 0 && String(ips[0][0]).includes('/');
@@ -197,6 +220,12 @@ export function buildSummary(rows, options = {}) {
         ? 'Attempts folded onto a 24-hour clock, all days combined. '
           + `Peak hour is ${String(hours.busiestHour).padStart(2, '0')}:00 UTC.`
         : '',
+      // The same fold at week scale, sharing the panel: a flat Mon–Sun profile
+      // means fully automated fleets, a weekend dip means humans.
+      weekdays: weekdays.rows,
+      weekdayNote: total
+        ? `Busiest weekday: ${weekdays.busiest}. All weeks combined, UTC.`
+        : '',
     },
 
     strips: {
@@ -223,11 +252,14 @@ export function buildSummary(rows, options = {}) {
     geo: {
       available: hasGeo,
       countryBars: topBars(countries, opts.topN, total),
-      networkBars: topBars(networks, opts.topN, total),
+      // Shared against the source total, not the attempt total: this column is
+      // measured in sources, so a percentage of attempts would be meaningless.
+      sourceBars: topBars(sourcesByCountry, opts.topN, ips.length),
       countryCount: countries.length,
       note: hasGeo
-        ? `${formatCount(countries.length)} countries across ${formatCount(ips.length)} source networks, `
-          + 'resolved at build time. Ranked by attempts, not by number of hosts.'
+        ? `${formatCount(countries.length)} countries across ${formatCount(ips.length)} source `
+          + `${anonymised ? 'blocks' : 'addresses'}, resolved at build time. Where the two columns `
+          + 'disagree, volume is coming from a few busy hosts rather than many.'
         : 'Not available. The log records source addresses only; country attribution '
           + 'needs a GeoIP lookup run against the distinct addresses.',
     },

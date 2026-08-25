@@ -6,6 +6,9 @@
 
 import { formatCount, pct, stamp, stampDay, stampDow } from './format.js';
 
+/** Monday-first, so the weekend reads as a pair instead of split across both ends. */
+const WEEK = [['Mon', 1], ['Tue', 2], ['Wed', 3], ['Thu', 4], ['Fri', 5], ['Sat', 6], ['Sun', 0]];
+
 const MINUTE = 60000, HOUR = 3600000, DAY = 86400000;
 
 /**
@@ -143,4 +146,30 @@ export function buildHours(times) {
   }));
 
   return { hours, peak, busiestHour: counts.indexOf(peak) };
+}
+
+/**
+ * Every attempt folded onto a Mon–Sun week, all weeks combined.
+ *
+ * The companion question to the hour fold: do the scanners keep a human
+ * schedule at the week scale? A flat profile means fully automated fleets; a
+ * weekend dip would mean someone is at a keyboard.
+ *
+ * @param {number[]} times epoch ms
+ */
+export function buildWeekdays(times) {
+  const byDay = new Array(7).fill(0); // indexed by getUTCDay: 0 = Sunday
+  for (const t of times) byDay[new Date(t).getUTCDay()]++;
+
+  const peak = Math.max(...byDay);
+  const rows = WEEK.map(([dow, i]) => ({
+    dow,
+    key: dow, // bar-list shape, so the renderer can reuse renderBars
+    count: byDay[i],
+    label: formatCount(byDay[i]),
+    pct: pct(byDay[i], peak),
+  }));
+
+  const busiest = rows.reduce((a, b) => (b.count > a.count ? b : a), rows[0]);
+  return { rows, peak, busiest: busiest.dow };
 }

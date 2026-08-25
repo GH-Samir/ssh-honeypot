@@ -66,10 +66,14 @@ export function renderKpis(kpis) {
  * — the shape the banner panel needs, where keys are long.
  */
 export function renderBars(bars, { rank = false, stacked = false } = {}) {
-  if (!bars.length) return empty();
+  // Tolerate a missing list, not just an empty one: a cached data file written
+  // by an older build can lack a panel entirely, and one absent panel must not
+  // take the whole page down.
+  const list = Array.isArray(bars) ? bars : [];
+  if (!list.length) return empty();
 
   return el('div', { class: `bars ${stacked ? 'bars--stacked' : ''}`.trim() },
-    bars.map((b) => {
+    list.map((b) => {
       const track = el('span', { class: 'bar-track' }, [
         el('span', { class: 'bar-fill', style: { width: b.pct } }),
       ]);
@@ -123,11 +127,23 @@ export function renderDays(days) {
 }
 
 export function renderHours(hours) {
+  // The weekday fold shares this panel: it balances the panel's height against
+  // the 31-row day list beside it, and the two folds ask the same question at
+  // two scales. Optional, so a summary from an older build still renders.
+  const weekdays = Array.isArray(hours.weekdays) && hours.weekdays.length
+    ? el('div', { class: 'weekdays' }, [
+      el('h3', { class: 'sub', text: 'By weekday' }),
+      renderBars(hours.weekdays),
+      hours.weekdayNote ? el('p', { class: 'panel-foot', text: hours.weekdayNote }) : null,
+    ])
+    : null;
+
   return panel('Hour of day', hours.note, el('div', {}, [
     el('div', { class: 'hours' }, hours.rows.map((h) => el('div', {
       class: 'hour-slot', title: h.title,
     }, [el('div', { class: 'hour-bar', style: { height: h.pct } })]))),
     el('div', { class: 'hour-axis' }, hours.rows.map((h) => el('span', { class: 'hour-tick', text: h.tick }))),
+    weekdays,
   ]), 'panel--hours');
 }
 
@@ -167,11 +183,18 @@ export function renderPairs(pairs) {
   ]);
 }
 
+/** Rows drawn at once. See renderLogRows. */
+export const LOG_CAP = 200;
+
 /**
  * Fill the log table body. Separate from the panel because the search box
  * re-runs it on every keystroke — replacing rows, never appending.
+ *
+ * Capped because the published log holds 5,000 events: drawing them all costs
+ * ~35,000 nodes and makes every keystroke crawl. The search still runs over the
+ * whole set — only the drawing is limited, and the caption says so.
  */
-export function renderLogRows(tbody, rows) {
+export function renderLogRows(tbody, rows, { cap = LOG_CAP } = {}) {
   tbody.replaceChildren();
 
   if (!rows.length) {
@@ -179,7 +202,7 @@ export function renderLogRows(tbody, rows) {
     return;
   }
 
-  for (const r of rows) {
+  for (const r of rows.slice(0, cap)) {
     tbody.append(el('tr', {}, [
       el('td', { class: 'dim', text: r.time }),
       el('td', { text: r.ip }),
@@ -226,29 +249,45 @@ function renderLogPanel(log) {
  * Dropping a second log must not stack two dashboards on top of each other.
  */
 export function renderDashboard(root, summary) {
+  // Defaults for anything a summary might not carry. The page and its data file
+  // are deployed together but cached separately, so they can briefly disagree.
+  const list = (v) => (Array.isArray(v) ? v : []);
+  const days = { rows: [], spansDays: false, note: '', ...summary.days };
+  const hours = { rows: [], note: '', ...summary.hours };
+  const strips = { rows: [], note: '', ...summary.strips };
+  const log = { rows: [], shown: 0, total: 0, note: '', ...summary.log };
+  const geo = { available: false, countryBars: [], sourceBars: [], countryCount: 0, note: '', ...summary.geo };
+  const meta = { total: 0, anonymised: true, ...summary.meta };
+
   const geoPanel = panel(
     'Origin by country',
-    summary.geo.note,
-    summary.geo.available
+    geo.note,
+    geo.available
       ? el('div', { class: 'split' }, [
-        el('div', {}, [el('h3', { class: 'sub', text: 'By country' }), renderBars(summary.geo.countryBars, { rank: true })]),
-        el('div', {}, [el('h3', { class: 'sub', text: 'By network' }), renderBars(summary.geo.networkBars, { rank: true })]),
+        el('div', {}, [
+          el('h3', { class: 'sub', text: 'By attempts' }),
+          renderBars(geo.countryBars, { rank: true }),
+        ]),
+        el('div', {}, [
+          el('h3', { class: 'sub', text: `By unique ${meta.anonymised ? 'sources' : 'addresses'}` }),
+          renderBars(geo.sourceBars, { rank: true }),
+        ]),
       ])
       : empty(),
-    `panel--geo ${summary.geo.available ? '' : 'is-unavailable'}`.trim(),
+    `panel--geo ${geo.available ? '' : 'is-unavailable'}`.trim(),
   );
 
   root.replaceChildren(
-    renderKpis(summary.kpis),
-    renderTimeline(summary.timeline),
+    renderKpis(list(summary.kpis)),
+    renderTimeline({ buckets: [], bucketLabel: '', peakLabel: '', windowStart: '', windowMid: '', windowEnd: '', ...summary.timeline }),
     // A single-day capture has nothing to say day-by-day, and folding one day
     // onto a 24-hour clock just redraws the timeline.
-    ...(summary.days.spansDays
-      ? [el('div', { class: 'grid grid--2' }, [renderDays(summary.days), renderHours(summary.hours)])]
+    ...(days.spansDays
+      ? [el('div', { class: 'grid grid--2' }, [renderDays(days), renderHours(hours)])]
       : []),
-    renderStrips(summary.strips),
+    renderStrips(strips),
     el('div', { class: 'grid grid--2' }, [
-      panel('Most active sources', `Attempts per source ${summary.meta.anonymised ? '/24 block' : 'address'}. Bar length is relative to the busiest.`, renderBars(summary.ipBars, { rank: true }), 'panel--ips'),
+      panel('Most active sources', `Attempts per source ${meta.anonymised ? '/24 block' : 'address'}. Bar length is relative to the busiest.`, renderBars(summary.ipBars, { rank: true }), 'panel--ips'),
       panel('Client software', 'Self-reported SSH banners. Library banners indicate scripted scanners rather than interactive clients.', renderBars(summary.bannerBars, { stacked: true }), 'panel--banners'),
     ]),
     el('div', { class: 'grid grid--2' }, [
@@ -256,9 +295,9 @@ export function renderDashboard(root, summary) {
       panel('Passwords tried', summary.pwNote, renderBars(summary.pwBars), 'panel--pws'),
     ]),
     el('div', { class: 'grid grid--2' }, [
-      panel('Repeated credential pairs', 'Combinations seen more than once — the overlap where separate scanners share a wordlist.', renderPairs(summary.pairs), 'panel--pairs'),
+      panel('Repeated credential pairs', 'Combinations seen more than once — the overlap where separate scanners share a wordlist.', renderPairs(list(summary.pairs)), 'panel--pairs'),
       geoPanel,
     ]),
-    renderLogPanel(summary.log),
+    renderLogPanel(log),
   );
 }

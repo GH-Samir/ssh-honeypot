@@ -117,6 +117,14 @@ test('renderBars on an empty list says so rather than drawing nothing', () => {
   assert.match(node.textContent, /no data/i);
 });
 
+test('renderBars survives a missing list', () => {
+  // A data file written by an older build can be missing a panel's list
+  // entirely. One absent panel must not take the whole page down.
+  assert.doesNotThrow(() => renderBars(undefined));
+  assert.match(renderBars(undefined).textContent, /no data/i);
+  assert.match(renderBars(null).textContent, /no data/i);
+});
+
 // ── time panels ────────────────────────────────────────────────────────────
 
 test('renderTimeline draws a bar per bucket with a hover title', () => {
@@ -170,6 +178,36 @@ test('renderHours draws 24 columns and labels every third', () => {
   assert.equal(node.querySelectorAll('.hour-tick').length, 24);
   assert.equal(node.querySelectorAll('.hour-tick')[3].textContent, '03');
   assert.equal(node.querySelectorAll('.hour-tick')[4].textContent, '');
+});
+
+test('renderHours draws the weekday fold beneath the hour chart', () => {
+  const hours = {
+    rows: Array.from({ length: 24 }, (_, h) => ({
+      hour: String(h).padStart(2, '0'), tick: '', count: 0, pct: '0.00%', title: 't',
+    })),
+    note: 'n',
+    weekdays: [
+      { dow: 'Mon', key: 'Mon', count: 10, label: '10', pct: '100.00%' },
+      { dow: 'Sat', key: 'Sat', count: 5, label: '5', pct: '50.00%' },
+    ],
+    weekdayNote: 'Busiest weekday: Mon.',
+  };
+  const node = renderHours(hours);
+  const rows = node.querySelectorAll('.bar-row');
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].querySelector('.bar-key').textContent, 'Mon');
+  assert.match(node.textContent, /Busiest weekday: Mon/);
+});
+
+test('renderHours without weekday data still draws the hour chart', () => {
+  // A summary.json from a build before the weekday fold existed.
+  const hours = {
+    rows: Array.from({ length: 24 }, () => ({ hour: '00', tick: '', count: 0, pct: '0.00%', title: 't' })),
+    note: 'n',
+  };
+  assert.doesNotThrow(() => renderHours(hours));
+  assert.equal(renderHours(hours).querySelectorAll('.hour-bar').length, 24);
+  assert.equal(renderHours(hours).querySelectorAll('.bar-row').length, 0);
 });
 
 test('renderStrips positions each binned cell', () => {
@@ -242,6 +280,27 @@ test('renderLogRows says so when a filter matches nothing', () => {
   assert.match(tbody.textContent, /no matching events/i);
 });
 
+test('renderLogRows caps how many rows it puts in the DOM', () => {
+  // The published log holds 5,000 events. Rendering all of them costs ~35,000
+  // nodes and makes the first keystroke in the search box crawl; the search
+  // still runs over the full set, only the drawing is capped.
+  const tbody = el('tbody');
+  const rows = Array.from({ length: 1000 }, (_, i) => ({
+    time: 't', ip: 'i', user: `u${i}`, pw: 'p', att: '1', banner: 'b',
+  }));
+  renderLogRows(tbody, rows, { cap: 200 });
+
+  assert.equal(tbody.querySelectorAll('tr').length, 200);
+  assert.equal(tbody.querySelector('tr td:nth-child(3)').textContent, 'u0'); // from the top
+});
+
+test('renderLogRows renders everything when under the cap', () => {
+  const tbody = el('tbody');
+  const rows = Array.from({ length: 5 }, () => ({ time: 't', ip: 'i', user: 'u', pw: 'p', att: '1', banner: 'b' }));
+  renderLogRows(tbody, rows, { cap: 200 });
+  assert.equal(tbody.querySelectorAll('tr').length, 5);
+});
+
 // ── whole dashboard ────────────────────────────────────────────────────────
 
 const SUMMARY = {
@@ -254,7 +313,7 @@ const SUMMARY = {
   ipBars: BARS, bannerBars: BARS, userBars: BARS, pwBars: BARS,
   userNote: 'u', pwNote: 'p',
   pairs: [{ u: 'root', p: '123456', count: 2, n: '2' }],
-  geo: { available: true, countryBars: BARS, networkBars: BARS, countryCount: 3, note: 'g' },
+  geo: { available: true, countryBars: BARS, sourceBars: BARS, countryCount: 3, note: 'g' },
   log: { rows: [{ time: 't', ip: 'i', user: 'u', pw: 'p', att: '1', banner: 'b' }], shown: 1, total: 6, note: 'l' },
 };
 
@@ -287,10 +346,24 @@ test('renderDashboard hides the day/hour panels for a single-day capture', () =>
 
 test('renderDashboard shows the geo panel as unavailable without geo data', () => {
   const root = el('div');
-  renderDashboard(root, { ...SUMMARY, geo: { available: false, countryBars: [], networkBars: [], countryCount: 0, note: 'Not available.' } });
+  renderDashboard(root, { ...SUMMARY, geo: { available: false, countryBars: [], sourceBars: [], countryCount: 0, note: 'Not available.' } });
   const geo = root.querySelector('.panel--geo');
   assert.ok(geo.classList.contains('is-unavailable'));
   assert.match(geo.textContent, /Not available/);
+});
+
+test('renderDashboard survives a summary written by an older build', () => {
+  // Exactly the version skew that blanked the page: a cached summary.json with
+  // geo.networkBars where the current code expects geo.sourceBars.
+  const root = el('div');
+  const stale = structuredClone(SUMMARY);
+  stale.geo.networkBars = stale.geo.sourceBars;
+  delete stale.geo.sourceBars;
+
+  assert.doesNotThrow(() => renderDashboard(root, stale));
+  // The rest of the report still draws.
+  assert.ok(root.querySelector('.kpi'));
+  assert.ok(root.querySelector('#log-body tr'));
 });
 
 test('renderDashboard renders an empty capture without throwing', () => {
@@ -301,7 +374,7 @@ test('renderDashboard renders an empty capture without throwing', () => {
     ipBars: [], bannerBars: [], userBars: [], pwBars: [], pairs: [],
     days: { rows: [], spansDays: false, note: '' },
     strips: { rows: [], note: '' },
-    geo: { available: false, countryBars: [], networkBars: [], countryCount: 0, note: '' },
+    geo: { available: false, countryBars: [], sourceBars: [], countryCount: 0, note: '' },
     log: { rows: [], shown: 0, total: 0, note: '' },
   };
   assert.doesNotThrow(() => renderDashboard(root, empty));

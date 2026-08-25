@@ -97,13 +97,53 @@ test('buildSummary drops the countries tile when there is no geo data', () => {
   assert.equal(s.geo.available, false);
 });
 
-test('buildSummary ranks countries by attempts and by network', () => {
+test('buildSummary ranks countries by attempts', () => {
   const s = buildSummary(prepared());
   assert.equal(s.geo.available, true);
   assert.equal(s.geo.countryBars[0].key, 'China');
   assert.equal(s.geo.countryBars[0].count, 4);
-  assert.equal(s.geo.networkBars[0].key, 'UCLOUD');
   assert.equal(s.geo.countryCount, 3);
+});
+
+test('buildSummary counts distinct sources per country, not attempts', () => {
+  // The two columns disagreeing is the finding: a country with many hosts is
+  // a distributed botnet, one with huge volume from a single host is somebody
+  // renting a VPS for an afternoon.
+  const spread = [
+    ev('2026-01-01T10:00:00Z', '10.1.1.1', 'root', 'a', 'S1', 1),
+    ev('2026-01-01T10:00:01Z', '10.1.2.1', 'root', 'b', 'S2', 1),
+    ev('2026-01-01T10:00:02Z', '10.1.3.1', 'root', 'c', 'S3', 1),
+  ];
+  const burst = Array.from({ length: 10 }, (_, i) =>
+    ev(`2026-01-01T11:00:${String(i).padStart(2, '0')}Z`, '20.1.1.1', 'root', `p${i}`, `B${i}`, 1));
+
+  const geo = new Map([
+    ['10.1.1.1', { country: 'Manyhosts', countryCode: 'MH', asn: 'AS1', asOrg: 'A' }],
+    ['10.1.2.1', { country: 'Manyhosts', countryCode: 'MH', asn: 'AS1', asOrg: 'A' }],
+    ['10.1.3.1', { country: 'Manyhosts', countryCode: 'MH', asn: 'AS1', asOrg: 'A' }],
+    ['20.1.1.1', { country: 'Onehost', countryCode: 'OH', asn: 'AS2', asOrg: 'B' }],
+  ]);
+  const s = buildSummary(prepareRows([...spread, ...burst], { anonymise: truncateIp, geo }));
+
+  assert.equal(s.geo.countryBars[0].key, 'Onehost');    // 10 attempts beats 3
+  assert.equal(s.geo.countryBars[0].count, 10);
+  assert.equal(s.geo.sourceBars[0].key, 'Manyhosts');   // 3 blocks beats 1
+  assert.equal(s.geo.sourceBars[0].count, 3);
+  assert.equal(s.geo.sourceBars[1].count, 1);
+});
+
+test('buildSummary counts a country\'s sources once however often they knock', () => {
+  // Two hosts in one /24 are one published source, and ten attempts from one
+  // host are still one source.
+  const s = buildSummary(prepared());
+  // China's .119 and .4 share 165.154.177.0/24 across four attempts.
+  assert.equal(s.geo.sourceBars.find((b) => b.key === 'China').count, 1);
+});
+
+test('buildSummary shares source counts against the source total, not attempts', () => {
+  const s = buildSummary(prepared());
+  // 3 blocks in total, one of them China.
+  assert.equal(s.geo.sourceBars.find((b) => b.key === 'China').share, '33.3%');
 });
 
 test('buildSummary honours topN across every ranked panel', () => {
@@ -119,6 +159,15 @@ test('buildSummary strips the protocol prefix from client banners', () => {
   const s = buildSummary(prepared());
   assert.equal(s.bannerBars[0].key, 'Go');
   assert.equal(s.bannerBars[0].count, 4);
+});
+
+test('buildSummary folds the capture onto a week under the hour panel', () => {
+  // Jan 1 2026 is a Thursday (4 attempts), Jan 3 a Saturday (2).
+  const s = buildSummary(prepared());
+  assert.equal(s.hours.weekdays.length, 7);
+  assert.equal(s.hours.weekdays[3].key, 'Thu');
+  assert.equal(s.hours.weekdays[3].count, 4);
+  assert.match(s.hours.weekdayNote, /Busiest weekday: Thu/);
 });
 
 test('buildSummary writes the prose notes the panels are captioned with', () => {

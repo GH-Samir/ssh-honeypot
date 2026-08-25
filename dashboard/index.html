@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SSH Honeypot — Credential Telemetry</title>
+<meta name="description" content="A month of unsolicited SSH login attempts against a honeypot on a public VPS: who knocks, and what keys they try.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🍯</text></svg>">
+</head>
+<body>
+<div class="scanlines" aria-hidden="true"></div>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="masthead-text">
+      <p class="eyebrow">SSH Honeypot · Credential Telemetry</p>
+      <h1>Who knocks, and what keys they try</h1>
+      <p class="lede">
+        I hosted a low-interaction honeypot on a VPS for 30 days. Here is what I found; every authentication attempt is
+        grouped by source, credential and session burst. Source addresses are truncated to
+        their <code>/24</code> network before publication.
+      </p>
+    </div>
+
+    <div class="source-box">
+      <p class="source-label">Data source</p>
+      <p class="source-line" id="source">loading…</p>
+      <div class="source-actions">
+        <label class="button">
+          Load a .jsonl
+          <input type="file" id="file" accept=".jsonl,.json,.log,.txt" hidden>
+        </label>
+        <button type="button" class="button button--ghost" id="reset" hidden>
+          Back to the capture
+        </button>
+      </div>
+      <p class="hint">
+        Analysis runs in your browser — a file you open here is never uploaded anywhere.
+      </p>
+    </div>
+  </header>
+
+  <p class="status" id="status">Loading capture…</p>
+
+  <main id="dashboard"></main>
+
+  <footer class="colophon">
+    <p>
+      Built from the honeypot's own <code>events.jsonl</code>. Aggregates are precomputed by
+      <code>analysis/build.mjs</code>; country and network attribution is resolved at build time.
+      All times UTC.
+    </p>
+    <p>
+      <a href="https://github.com/GH-Samir/ssh-honeypot">Source and method on GitHub</a>
+    </p>
+  </footer>
+</div>
+
+<script type="module">
+  import { boot, wireFileInput } from './src/main.js';
+  wireFileInput(await boot());
+</script>
+</body>
+</html>
