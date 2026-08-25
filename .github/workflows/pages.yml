@@ -1,0 +1,51 @@
+# Publishes dashboard/ to GitHub Pages on every push to main — but only after
+# the test suite passes. A red test blocks the deploy, so the public page can
+# never get ahead of the tests.
+#
+# The site is fully static: dashboard/data/summary.json is committed by the
+# local build (which enforces the /24 anonymisation before writing), so the
+# workflow never touches raw logs and needs no secrets.
+name: Deploy to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time; a queued deploy of newer code should not be cancelled
+# by an older in-flight one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dashboard
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -30,6 +30,9 @@ carries the most weight.
 - Structured JSON logging, one record per attempt.
 - Persistence to SQLite.
 - Geo/ASN enrichment of source IPs (MaxMind GeoLite2, free tier).
+  *Amended (Aug 2026): shipped with ip-api.com's free batch endpoint instead —
+  no account or licence key, and country + ASN come back in one call. The
+  full-IP lookup cache stays local and gitignored per §3.*
 - A read-only dashboard over the collected data.
 - `FINDINGS.md` — written analysis with charts.
 - **Stretch:** a fake HTTP endpoint logging requested paths and user agents.

@@ -1,0 +1,20 @@
+# Runs the whole suite on every push and PR. The Pages deploy has its own test
+# gate; this one exists so a red PR is visibly red before anything merges.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
