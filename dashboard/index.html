@@ -2,6 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- Defence in depth: the renderer never parses markup from data, and this CSP
+     means that even if that ever regressed, no inline or third-party script
+     could run. GitHub Pages cannot set headers, hence the meta tag. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SSH Honeypot — Credential Telemetry</title>
 <meta name="description" content="A month of unsolicited SSH login attempts against a honeypot on a public VPS: who knocks, and what keys they try.">
@@ -60,9 +64,6 @@
   </footer>
 </div>
 
-<script type="module">
-  import { boot, wireFileInput } from './src/main.js';
-  wireFileInput(await boot());
-</script>
+<script type="module" src="./src/boot.js"></script>
 </body>
 </html>

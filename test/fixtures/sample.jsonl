@@ -1,0 +1,8 @@
+{"event_id":"e1","ts":"2026-01-01T10:00:00.100000+00:00","service":"ssh","src_ip":"203.0.113.119","src_port":51001,"username":"root","password":"123456","client_banner":"SSH-2.0-Go","session_id":"A","attempt_no":1}
+{"event_id":"e2","ts":"2026-01-01T10:00:01.200000+00:00","service":"ssh","src_ip":"203.0.113.119","src_port":51001,"username":"root","password":"password","client_banner":"SSH-2.0-Go","session_id":"A","attempt_no":2}
+{"event_id":"e3","ts":"2026-01-01T10:00:02.300000+00:00","service":"ssh","src_ip":"203.0.113.4","src_port":51002,"username":"admin","password":"123456","client_banner":"SSH-2.0-Go","session_id":"A2","attempt_no":1}
+{"event_id":"e4","ts":"2026-01-01T14:30:00.000000+00:00","service":"ssh","src_ip":"198.51.100.169","src_port":52000,"username":"root","password":"123456","client_banner":"SSH-2.0-libssh_0.9.6","session_id":"B","attempt_no":1}
+{"event_id":"e5","ts":"2026-01-03T10:00:00.000000+00:00","service":"ssh","src_ip":"8.8.8.8","src_port":53000,"username":"admin","password":"0.0.0.0.","client_banner":"SSH-2.0-PuTTY_Release_0.84","session_id":"C","attempt_no":1}
+{"event_id":"e6","ts":"2026-01-03T18:00:00.000000+00:00","service":"ssh","src_ip":"203.0.113.119","src_port":51500,"username":"","password":"","client_banner":"SSH-2.0-Go","session_id":"D","attempt_no":1}
+not json at all — a rotated log can end mid-write
+{"event_id":"e7","ts":"2026-01-03T18:00:05.000000+00:00","service":"ssh","src_ip":"198.51.100.169","src_port":52100,"username":"root","password":"123456","client_banner":"SSH-2.0-libssh_0.9.6","session_id":"E","attempt_no":1}

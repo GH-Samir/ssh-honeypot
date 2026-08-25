@@ -13,15 +13,15 @@ const { filterRows, filterNote, ingestText, loadSummary, boot, wireFileInput } =
 const FIXTURE = fs.readFileSync(fileURLToPath(new URL('./fixtures/sample.jsonl', import.meta.url)), 'utf8');
 
 const LOG = [
-  { time: 'Aug 14 02:59', ip: '165.154.177.0/24', user: 'root', pw: '123456', att: '1', banner: 'Go' },
-  { time: 'Aug 14 02:58', ip: '43.163.107.0/24', user: 'admin', pw: 'hunter2', att: '2', banner: 'libssh_0.9.6' },
+  { time: 'Aug 14 02:59', ip: '203.0.113.0/24', user: 'root', pw: '123456', att: '1', banner: 'Go' },
+  { time: 'Aug 14 02:58', ip: '198.51.100.0/24', user: 'admin', pw: 'hunter2', att: '2', banner: 'libssh_0.9.6' },
   { time: 'Aug 14 02:57', ip: '8.8.8.0/24', user: 'ubuntu', pw: 'PASSWORD', att: '1', banner: 'PuTTY' },
 ];
 
 // ── filtering ──────────────────────────────────────────────────────────────
 
 test('filterRows matches across every visible column', () => {
-  assert.equal(filterRows(LOG, '165.154').length, 1);
+  assert.equal(filterRows(LOG, '203.0.113').length, 1);
   assert.equal(filterRows(LOG, 'admin').length, 1);
   assert.equal(filterRows(LOG, 'hunter2').length, 1);
   assert.equal(filterRows(LOG, 'putty').length, 1);
@@ -90,7 +90,7 @@ test('ingestText keeps full addresses for a locally dropped log', () => {
   // your own analysis. The published build is the one that must truncate.
   const summary = ingestText(FIXTURE);
   assert.equal(summary.meta.anonymised, false);
-  assert.equal(summary.ipBars[0].key, '165.154.177.119');
+  assert.equal(summary.ipBars[0].key, '203.0.113.119');
 });
 
 test('ingestText reports an empty or unparseable file rather than throwing', () => {
@@ -230,7 +230,7 @@ test('loading a local file replaces the dashboard rather than stacking one', asy
   assert.equal(doc.querySelectorAll('.panel--kpis').length, 1);
   assert.match(doc.querySelector('#source').textContent, /dropped\.jsonl/);
   // A dropped file is analysed locally, so it shows real addresses.
-  assert.ok(doc.querySelector('#dashboard').textContent.includes('165.154.177.119'));
+  assert.ok(doc.querySelector('#dashboard').textContent.includes('203.0.113.119'));
 });
 
 test('the search still works after a local file is loaded', async () => {

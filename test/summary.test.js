@@ -9,18 +9,18 @@ const ev = (ts, ip, username, password, session_id, attempt_no, banner = 'SSH-2.
 });
 
 const ROWS = [
-  ev('2026-01-01T10:00:00Z', '165.154.177.119', 'root', '123456', 'A', 1, 'SSH-2.0-Go'),
-  ev('2026-01-01T10:00:01Z', '165.154.177.119', 'root', 'password', 'A', 2, 'SSH-2.0-Go'),
-  ev('2026-01-01T10:00:02Z', '165.154.177.4', 'admin', '123456', 'A2', 1, 'SSH-2.0-Go'),
-  ev('2026-01-01T14:30:00Z', '43.163.107.169', 'root', '123456', 'B', 1),
+  ev('2026-01-01T10:00:00Z', '203.0.113.119', 'root', '123456', 'A', 1, 'SSH-2.0-Go'),
+  ev('2026-01-01T10:00:01Z', '203.0.113.119', 'root', 'password', 'A', 2, 'SSH-2.0-Go'),
+  ev('2026-01-01T10:00:02Z', '203.0.113.4', 'admin', '123456', 'A2', 1, 'SSH-2.0-Go'),
+  ev('2026-01-01T14:30:00Z', '198.51.100.169', 'root', '123456', 'B', 1),
   ev('2026-01-03T10:00:00Z', '8.8.8.8', 'admin', 'admin', 'C', 1, 'SSH-2.0-PuTTY_Release_0.84'),
-  ev('2026-01-03T18:00:00Z', '165.154.177.119', 'root', '123456', 'D', 1, 'SSH-2.0-Go'),
+  ev('2026-01-03T18:00:00Z', '203.0.113.119', 'root', '123456', 'D', 1, 'SSH-2.0-Go'),
 ];
 
 const GEO = new Map([
-  ['165.154.177.119', { country: 'China', countryCode: 'CN', asn: 'AS1', asOrg: 'UCLOUD' }],
-  ['165.154.177.4', { country: 'China', countryCode: 'CN', asn: 'AS1', asOrg: 'UCLOUD' }],
-  ['43.163.107.169', { country: 'Singapore', countryCode: 'SG', asn: 'AS2', asOrg: 'Tencent' }],
+  ['203.0.113.119', { country: 'China', countryCode: 'CN', asn: 'AS1', asOrg: 'UCLOUD' }],
+  ['203.0.113.4', { country: 'China', countryCode: 'CN', asn: 'AS1', asOrg: 'UCLOUD' }],
+  ['198.51.100.169', { country: 'Singapore', countryCode: 'SG', asn: 'AS2', asOrg: 'Tencent' }],
   ['8.8.8.8', { country: 'United States', countryCode: 'US', asn: 'AS15169', asOrg: 'Google LLC' }],
 ]);
 
@@ -30,7 +30,7 @@ const prepared = (opts = {}) => prepareRows(ROWS, { anonymise: truncateIp, geo: 
 
 test('prepareRows replaces the address with its published label', () => {
   const rows = prepareRows(ROWS, { anonymise: truncateIp, geo: GEO });
-  assert.equal(rows[0].src_ip, '165.154.177.0/24');
+  assert.equal(rows[0].src_ip, '203.0.113.0/24');
   assert.equal(rows[4].src_ip, '8.8.8.0/24');
 });
 
@@ -43,7 +43,7 @@ test('prepareRows leaves no full address anywhere in its output', () => {
 });
 
 test('prepareRows joins geo on the real address, before truncation', () => {
-  // Truncating first would look up 165.154.177.0, which is a different host.
+  // Truncating first would look up 203.0.113.0, which is a different host.
   const rows = prepareRows(ROWS, { anonymise: truncateIp, geo: GEO });
   assert.equal(rows[0].country, 'China');
   assert.equal(rows[0].asOrg, 'UCLOUD');
@@ -57,7 +57,7 @@ test('prepareRows without geo marks origin unknown rather than omitting it', () 
 
 test('prepareRows in full-IP mode keeps the real address', () => {
   const rows = prepareRows(ROWS, { anonymise: (ip) => ip, geo: GEO });
-  assert.equal(rows[0].src_ip, '165.154.177.119');
+  assert.equal(rows[0].src_ip, '203.0.113.119');
 });
 
 // ── buildSummary ───────────────────────────────────────────────────────────
@@ -75,7 +75,7 @@ test('buildSummary collapses neighbouring hosts into one block', () => {
   // .119 (3 attempts) and .4 (1) are separate sources but one published label,
   // so the top bar shows their combined 4, not either one alone.
   const s = buildSummary(prepared());
-  assert.equal(s.ipBars[0].key, '165.154.177.0/24');
+  assert.equal(s.ipBars[0].key, '203.0.113.0/24');
   assert.equal(s.ipBars[0].count, 4);
 });
 
@@ -136,7 +136,7 @@ test('buildSummary counts a country\'s sources once however often they knock', (
   // Two hosts in one /24 are one published source, and ten attempts from one
   // host are still one source.
   const s = buildSummary(prepared());
-  // China's .119 and .4 share 165.154.177.0/24 across four attempts.
+  // China's .119 and .4 share 203.0.113.0/24 across four attempts.
   assert.equal(s.geo.sourceBars.find((b) => b.key === 'China').count, 1);
 });
 
@@ -174,7 +174,7 @@ test('buildSummary writes the prose notes the panels are captioned with', () => 
   const s = buildSummary(prepared());
   assert.match(s.days.note, /Busiest day: Jan 1 at 4 attempts/);
   assert.match(s.hours.note, /Peak hour is 10:00 UTC/);
-  assert.match(s.strips.note, /2 guesses from 165\.154\.177\.0\/24 in 1s/);
+  assert.match(s.strips.note, /2 guesses from 203\.0\.113\.0\/24 in 1s/);
   assert.match(s.strips.note, /80\.0% of sessions made exactly one attempt/);
   assert.match(s.pwNote, /3 distinct passwords/);
 });
@@ -185,7 +185,7 @@ test('buildSummary shows the newest events first in the log', () => {
   // capture the way the mockup did.
   const s = buildSummary(prepared());
   assert.equal(s.log.rows[0].time, 'Jan 3 18:00');
-  assert.equal(s.log.rows[0].ip, '165.154.177.0/24');
+  assert.equal(s.log.rows[0].ip, '203.0.113.0/24');
   assert.equal(s.log.rows[0].banner, 'Go');
   assert.equal(s.log.rows[0].att, '1');
 });

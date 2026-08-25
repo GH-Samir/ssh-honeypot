@@ -8,8 +8,8 @@ import { truncateIp, makeAnonymiser } from '../dashboard/src/anonymise.js';
 // promise in the README is broken.
 
 test('IPv4 keeps the network and zeroes the host octet', () => {
-  assert.equal(truncateIp('165.154.177.119'), '165.154.177.0/24');
-  assert.equal(truncateIp('43.163.107.169'), '43.163.107.0/24');
+  assert.equal(truncateIp('203.0.113.119'), '203.0.113.0/24');
+  assert.equal(truncateIp('198.51.100.169'), '198.51.100.0/24');
   assert.equal(truncateIp('8.8.8.8'), '8.8.8.0/24');
 });
 
@@ -41,7 +41,7 @@ test('malformed input degrades to a label, never throws', () => {
 
 test('an already-truncated label passes through unchanged', () => {
   // Re-running the pipeline over its own output must be a no-op, not garbage.
-  assert.equal(truncateIp('165.154.177.0/24'), '165.154.177.0/24');
+  assert.equal(truncateIp('203.0.113.0/24'), '203.0.113.0/24');
   assert.equal(truncateIp('2001:db8:abcd::/48'), '2001:db8:abcd::/48');
   assert.equal(truncateIp('(invalid)'), '(invalid)');
 });
@@ -51,7 +51,7 @@ test('makeAnonymiser(true) truncates; makeAnonymiser(false) is identity', () => 
   // must not be able to get at them by accident.
   const publish = makeAnonymiser(true);
   const local = makeAnonymiser(false);
-  assert.equal(publish('165.154.177.119'), '165.154.177.0/24');
-  assert.equal(local('165.154.177.119'), '165.154.177.119');
+  assert.equal(publish('203.0.113.119'), '203.0.113.0/24');
+  assert.equal(local('203.0.113.119'), '203.0.113.119');
   assert.equal(local(''), '(invalid)'); // still normalises junk
 });

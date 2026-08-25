@@ -15,6 +15,10 @@ honeypot_host_key.pub
 *.jsonl
 *.db
 
+# The one .jsonl that IS meant to be committed: a hand-written test fixture of
+# synthetic events on RFC 5737 documentation addresses — no real observations.
+!test/fixtures/sample.jsonl
+
 # Geo enrichment is keyed by full IP, so the cache is personal data too.
 # Derived country/ASN counts in dashboard/data/ are aggregate and do ship.
 analysis/cache/

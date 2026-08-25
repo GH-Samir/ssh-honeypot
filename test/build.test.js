@@ -11,9 +11,9 @@ const FIXTURE = fileURLToPath(new URL('./fixtures/sample.jsonl', import.meta.url
 const text = fs.readFileSync(FIXTURE, 'utf8');
 
 const GEO = new Map([
-  ['165.154.177.119', { country: 'China', countryCode: 'CN', asn: 'AS1', asOrg: 'UCLOUD' }],
-  ['165.154.177.4', { country: 'China', countryCode: 'CN', asn: 'AS1', asOrg: 'UCLOUD' }],
-  ['43.163.107.169', { country: 'Singapore', countryCode: 'SG', asn: 'AS2', asOrg: 'Tencent' }],
+  ['203.0.113.119', { country: 'China', countryCode: 'CN', asn: 'AS1', asOrg: 'UCLOUD' }],
+  ['203.0.113.4', { country: 'China', countryCode: 'CN', asn: 'AS1', asOrg: 'UCLOUD' }],
+  ['198.51.100.169', { country: 'Singapore', countryCode: 'SG', asn: 'AS2', asOrg: 'Tencent' }],
   ['8.8.8.8', { country: 'United States', countryCode: 'US', asn: 'AS15169', asOrg: 'Google LLC' }],
 ]);
 
@@ -32,14 +32,14 @@ test('buildFromText turns a log into a summary', () => {
 
 test('buildFromText anonymises by default', () => {
   const { summary } = buildFromText(text, { geo: GEO });
-  assert.equal(summary.ipBars[0].key, '165.154.177.0/24');
+  assert.equal(summary.ipBars[0].key, '203.0.113.0/24');
   assert.equal(summary.log.rows.every((r) => r.ip.endsWith('/24')), true);
 });
 
 test('buildFromText in full-IP mode keeps real addresses', () => {
   const { summary } = buildFromText(text, { geo: GEO, fullIp: true });
   assert.equal(summary.meta.anonymised, false);
-  assert.equal(summary.ipBars[0].key, '165.154.177.119');
+  assert.equal(summary.ipBars[0].key, '203.0.113.119');
 });
 
 test('buildFromText stamps when the build ran', () => {
@@ -66,7 +66,7 @@ test('findFullIps catches a summary that was not anonymised', () => {
   const { summary } = buildFromText(text, { geo: GEO, fullIp: true });
   const found = findFullIps(summary);
   assert.ok(found.length > 0);
-  assert.ok(found.some((f) => f.value.includes('165.154.177.119')));
+  assert.ok(found.some((f) => f.value.includes('203.0.113.119')));
   assert.ok(found.some((f) => f.path.startsWith('ipBars')));
 });
 

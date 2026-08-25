@@ -213,7 +213,7 @@ test('renderHours without weekday data still draws the hour chart', () => {
 test('renderStrips positions each binned cell', () => {
   const strips = {
     rows: [{
-      ip: '165.154.177.0/24', count: 5587, sessions: 5587, meta: '5,587 · 5,587 sess',
+      ip: '203.0.113.0/24', count: 5587, sessions: 5587, meta: '5,587 · 5,587 sess',
       cells: [
         { col: 0, count: 3, left: '0.000%', width: '0.278%', opacity: 1 },
         { col: 180, count: 1, left: '50.000%', width: '0.278%', opacity: 0.57 },
@@ -227,7 +227,7 @@ test('renderStrips positions each binned cell', () => {
   assert.equal(cssPct(cells[0], 'left'), 0);
   assert.equal(cssPct(cells[0], 'width'), 0.278);
   assert.equal(cells[1].style.opacity, '0.57');
-  assert.equal(node.querySelector('.strip-ip').textContent, '165.154.177.0/24');
+  assert.equal(node.querySelector('.strip-ip').textContent, '203.0.113.0/24');
 });
 
 // ── tables ─────────────────────────────────────────────────────────────────
