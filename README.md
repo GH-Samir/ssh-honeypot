@@ -53,9 +53,8 @@ browser; nothing is uploaded anywhere.
 
 ## Privacy
 
-Source IPs are personal data under UK GDPR. The published build truncates every
-address to its `/24` network before anything is written, and the build refuses
-to emit a file containing a full address - enforced by test and again at the
+The published build truncates every address to its `/24` network before anything 
+is written, and the build refuses to emit a file containing a full address - enforced by test and again at the
 point of writing. Raw logs and the full-IP geo cache never leave the local
 machine and are gitignored. Usernames and passwords are attacker-supplied
 strings; the renderer treats them as inert text everywhere (there is no
