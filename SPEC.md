@@ -15,7 +15,7 @@ analysis of what was observed.
 The project exists to demonstrate three things to a prospective employer:
 
 1. I can write a correct network service.
-2. I can operate it — deploy it, monitor it, and design it to survive without me.
+2. I can operate it - deploy it, monitor it, and design it to survive without me.
 3. I can turn raw data into a finding somebody would want to read.
 
 The third is the one most student projects skip, and is therefore the one that
@@ -49,7 +49,7 @@ carries the most weight.
 
 A high-interaction honeypot is more interesting and much more dangerous. If an
 attacker escapes the sandbox, my VPS becomes the origin of an attack on someone
-else — which is my legal and practical problem. The data I actually need
+else - which is my legal and practical problem. The data I actually need
 (credentials, source IPs, volume, timing) is fully available from the
 authentication stage alone. The extra risk buys nothing this project needs.
 

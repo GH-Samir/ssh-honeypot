@@ -11,7 +11,7 @@ collected on a public VPS between 15 July and 14 August 2026.
 
 **Live dashboard:** <https://gh-samir.github.io/ssh-honeypot/>
 
-![Dashboard screenshot](docs/screenshot.png)
+![Dashboard screenshot](image.png)
 
 ## What the data says
 
