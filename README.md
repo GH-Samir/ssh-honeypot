@@ -73,6 +73,67 @@ npm run serve            # http://localhost:8000
 Every module was built test-first; CI runs the suite on each push, and the
 Pages deploy is gated on it.
 
+## Using your own data
+
+The dashboard reads **JSON Lines**: one JSON object per line, no enclosing
+array, no commas between lines. Load a file with the **Load a .jsonl** button on
+the live page and it is analysed in your browser - nothing is uploaded. To
+publish it instead, put it through `npm run build`.
+
+A minimal line needs only a timestamp; everything else fills in a panel:
+
+| Field | Required | What it feeds |
+|---|---|---|
+| `ts` | **yes** | Timeline, day/hour/weekday folds, event log. A line without a parseable `ts` is skipped. |
+| `src_ip` | no | Top sources, burst strips, country lookup. Missing shows as `(invalid)`. |
+| `username` | no | Usernames panel, credential pairs. Missing shows as `(empty)`. |
+| `password` | no | Passwords panel, credential pairs. Missing shows as `(empty)`. |
+| `client_banner` | no | Client software panel. The `SSH-2.0-` prefix is stripped for display. |
+| `session_id` | no | Groups attempts into bursts. Without it each line counts as its own session, so burst figures flatten. |
+| `attempt_no` | no | Event log column only. Missing shows as `—`. |
+
+`event_id`, `service` and `src_port` are accepted and ignored - the dashboard
+never uses them, and the build drops them rather than carrying them through.
+
+A full line, as the listener writes it:
+
+```json
+{"event_id":"7e7e2352-3377-4b65-8fa2-95de6a4b12b6","ts":"2026-07-15T11:50:24.624798+00:00","service":"ssh","src_ip":"203.0.113.119","src_port":55143,"username":"root","password":"hello test","client_banner":"SSH-2.0-OpenSSH_for_Windows_9.5","session_id":"d6f9c6bc-2d33-449f-abbb-ec3c2054557b","attempt_no":1}
+```
+
+And the smallest thing that renders:
+
+```json
+{"ts":"2026-07-15T11:50:24Z","src_ip":"203.0.113.119","username":"root","password":"123456"}
+```
+
+### Timestamps
+
+**Always include a timezone.** `ts` is parsed with `Date.parse`, which reads a
+bare `2026-07-15T11:50:24` as *local* time - so the same file would render
+differently for every visitor. On a page served worldwide that is a 26-hour
+spread. Both of these are unambiguous and correct:
+
+```
+2026-07-15T11:50:24.624798+00:00     ← what the listener writes
+2026-07-15T11:50:24Z
+```
+
+Unix epoch numbers (`1752580224`) are **not** supported and those lines are
+dropped. Convert to ISO 8601 first.
+
+### Malformed lines
+
+Blank lines, unparseable JSON and lines missing `ts` are skipped rather than
+aborting the run - a rotated log can end mid-write. `npm run build` reports the
+count:
+
+```
+121310 events from events_combined.jsonl (3 lines skipped)
+```
+
+Lines need not be in chronological order; they are sorted on load.
+
 ## License
 
 MIT - see [LICENSE](LICENSE).
